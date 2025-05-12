@@ -1,0 +1,41 @@
+name: Build Docker image and deploy to Heroku
+on:
+  push:
+    branches:
+      - main  # Adjust to your default branch
+  schedule:
+    - cron: '0 11 * * *'  # Run at 11 AM every day
+    - cron: '0 17 * * *'  # Run at 5 PM every day
+jobs:
+  collect_data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.x
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements_collect_data.txt
+
+    - name: Run job data collection with Telegram notifications
+      run: python get_data.py
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    - name: Commit files
+      run: |
+        git config --local user.name actions-user
+        git config --local user.email "actions@github.com"
+        git add .
+        git commit -am "GH ACTION Job data update $(date)"
+        git push origin main
+      env:
+        REPO_KEY: ${{ secrets.GITHUB_TOKEN }}
+        username: github-actions
